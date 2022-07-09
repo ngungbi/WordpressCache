@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 var config = new GlobalConfig(builder.Configuration);
 var connMux = await ConnectionMultiplexer.ConnectAsync(config.RedisHost);
 var services = builder.Services;
+services.AddSingleton(config);
 services.AddSingleton<IConnectionMultiplexer>(connMux);
 services.AddSingleton<ICache, Cache>();
 services.AddScoped<ServiceContainer>();
