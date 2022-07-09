@@ -37,29 +37,14 @@ public class ProxyMiddleware {
                 logger.LogError("Error {StatusCode} - {Method} {Path} ", response.StatusCode, method, path);
             }
         } else {
-            // var requestMessage = new HttpRequestMessage(method, path);
+            // other method will be handled by nginx
             context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
             await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
-
-            // SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
-            //
-            // var response = await httpClient.SendAsync(requestMessage);
-            // await Serve(context, response);
+            
         }
     }
 
-    private static void SetRequestHeaders(HttpRequestHeaders targetHeaders, IHeaderDictionary contextHeaders) {
-        targetHeaders.UserAgent.ParseAdd(contextHeaders.UserAgent);
-        targetHeaders.Connection.ParseAdd(contextHeaders.Connection);
-        // targetHeaders.Date = DateTimeOffset.Parse(contextHeaders.Date);
-        targetHeaders.CacheControl = CacheControlHeaderValue.Parse(contextHeaders.CacheControl);
-    }
-
     private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
-        // foreach ((string? key, var value) in message.Headers) {
-        //     response.Headers[key] = string.Join("; ", value);
-        // }
-
         foreach ((string? key, var value) in message.Content.Headers) {
             response.Headers[key] = string.Join("; ", value);
         }

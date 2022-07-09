@@ -60,14 +60,5 @@ public class Cache : ICache {
         var results = headerValues.ToObject<Dictionary<string, string>>();
         return results;
     }
-
-    private static IDictionary<string, string> AppendHeaders(HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders) {
-        var headers = contentHeaders.ToDictionary(item => item.Key, item => string.Join(';', item.Value));
-
-        // foreach ((string? key, var value) in responseHeaders) {
-        //     headers.TryAdd(key, string.Join("; ", value));
-        // }
-
-        return headers;
-    }
+    
 }
