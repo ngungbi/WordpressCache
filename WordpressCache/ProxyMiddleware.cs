@@ -23,6 +23,7 @@ public class ProxyMiddleware {
             var saved = cache.GetValue(path);
             if (saved is not null) {
                 await Serve(context, saved);
+                if (logger.IsInformation()) logger.LogInformation("Use cached response");
                 return;
             }
 
@@ -30,6 +31,7 @@ public class ProxyMiddleware {
             await Serve(context, response);
             if (response.IsSuccessStatusCode) {
                 await cache.SaveAsync(path, response);
+                if (logger.IsInformation()) logger.LogInformation("Save response to cache");
             } else {
                 logger.LogError("Error {StatusCode} - {Method} {Path} ", response.StatusCode, method, path);
             }
