@@ -55,7 +55,9 @@ public class ProxyMiddleware {
     }
 
     private static HttpMethod GetMethod(HttpContext context) {
-        return context.Request.Method switch {
+        var method = context.Request.Method;
+        Console.WriteLine(method);
+        return method switch {
             "GET" => HttpMethod.Get,
             "POST" => HttpMethod.Post,
             "PUT" => HttpMethod.Put,
