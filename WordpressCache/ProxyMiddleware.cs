@@ -4,8 +4,8 @@ using WordpressCache.Models;
 
 namespace WordpressCache;
 
-public class Proxy {
-    public Proxy(RequestDelegate next) { }
+public class ProxyMiddleware {
+    public ProxyMiddleware(RequestDelegate next) { }
 
     public async Task InvokeAsync(HttpContext context) {
         var path = context.Request.Path;
@@ -16,7 +16,6 @@ public class Proxy {
 
         var method = GetMethod(context);
 
-        HttpResponseMessage responseMessage;
         if (method == HttpMethod.Get) {
             var saved = cache.GetValue(path);
             if (saved is not null) {
@@ -24,18 +23,25 @@ public class Proxy {
                 return;
             }
 
-            responseMessage = await httpClient.GetAsync(path);
+            var response = await httpClient.GetAsync(path);
+            await Serve(context, response);
+            if (response.IsSuccessStatusCode) await cache.SaveAsync(path, response);
         } else {
             var requestMessage = new HttpRequestMessage(method, path);
-            requestMessage.Content = new StreamContent(context.Request.Body);
-            responseMessage = await httpClient.SendAsync(requestMessage);
+            
+            SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
+            
+            var response = await httpClient.SendAsync(requestMessage);
+            await Serve(context, response);
         }
+    }
 
-        MapHeaders(responseMessage, context.Response);
-
-        var body = await responseMessage.Content.ReadAsByteArrayAsync();
-        await Serve(context, body);
-        await cache.SetValueAsync(path, responseMessage);
+    private static void SetRequestHeaders(HttpRequestHeaders targetHeaders, IHeaderDictionary contextHeaders) {
+        targetHeaders.UserAgent.ParseAdd(contextHeaders.UserAgent);
+        targetHeaders.Connection.ParseAdd(contextHeaders.Connection);
+        // targetHeaders.Date = DateTimeOffset.Parse(contextHeaders.Date);
+        targetHeaders.CacheControl = CacheControlHeaderValue.Parse(contextHeaders.CacheControl);
+        
     }
 
     private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
@@ -58,7 +64,9 @@ public class Proxy {
         };
     }
 
-    private static async Task Serve(HttpContext context, ReadOnlyMemory<byte> body) {
+    private static async Task Serve(HttpContext context, HttpResponseMessage message) {
+        MapHeaders(message, context.Response);
+        var body = await message.Content.ReadAsByteArrayAsync();
         await context.Response.BodyWriter.WriteAsync(body);
     }
 

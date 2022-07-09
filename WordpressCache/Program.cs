@@ -1,6 +1,5 @@
 using StackExchange.Redis;
 using WordpressCache;
-using Proxy = WordpressCache.Proxy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +20,7 @@ services.AddHttpClient(
 var app = builder.Build();
 
 // app.MapGet("/", () => "Hello World!");
-app.UseMiddleware<Proxy>();
+app.UseMiddleware<ProxyMiddleware>();
 
 var host = OperatingSystem.IsWindows() ? "https://localhost" : "http://*:80";
 app.Run(host);

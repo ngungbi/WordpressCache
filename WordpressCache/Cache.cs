@@ -7,7 +7,7 @@ namespace WordpressCache;
 
 public interface ICache {
     CachedMessage? GetValue(string path);
-    Task SetValueAsync(string path, HttpResponseMessage message);
+    Task SaveAsync(string path, HttpResponseMessage message);
 }
 
 public class Cache : ICache {
@@ -33,7 +33,7 @@ public class Cache : ICache {
         return result;
     }
 
-    public async Task SetValueAsync(string path, HttpResponseMessage message) {
+    public async Task SaveAsync(string path, HttpResponseMessage message) {
         var headers = AppendHeaders(message.Headers, message.Content.Headers);
         var content = await message.Content.ReadAsByteArrayAsync();
         var value = new CachedMessage {
@@ -59,7 +59,7 @@ public class Cache : ICache {
         return results;
     }
 
-    private IDictionary<string, string> AppendHeaders(HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders) {
+    private static IDictionary<string, string> AppendHeaders(HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders) {
         var headers = contentHeaders.ToDictionary(item => item.Key, item => string.Join(';', item.Value));
 
         foreach ((string? key, var value) in responseHeaders) {
