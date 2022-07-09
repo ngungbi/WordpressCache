@@ -34,7 +34,7 @@ public class Cache : ICache {
     }
 
     public async Task SaveAsync(string path, HttpResponseMessage message) {
-        var headers = AppendHeaders(message.Headers, message.Content.Headers);
+        var headers = message.Content.Headers.ToDictionary(x => x.Key, x => string.Join("; ", x.Value));
         var content = await message.Content.ReadAsByteArrayAsync();
         var value = new CachedMessage {
             Headers = headers,
@@ -62,9 +62,9 @@ public class Cache : ICache {
     private static IDictionary<string, string> AppendHeaders(HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders) {
         var headers = contentHeaders.ToDictionary(item => item.Key, item => string.Join(';', item.Value));
 
-        foreach ((string? key, var value) in responseHeaders) {
-            headers.TryAdd(key, string.Join("; ", value));
-        }
+        // foreach ((string? key, var value) in responseHeaders) {
+        //     headers.TryAdd(key, string.Join("; ", value));
+        // }
 
         return headers;
     }
