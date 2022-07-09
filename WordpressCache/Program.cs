@@ -4,6 +4,10 @@ using WordpressCache;
 var builder = WebApplication.CreateBuilder(args);
 
 var config = new GlobalConfig(builder.Configuration);
+
+Console.WriteLine("Wordpress Cache");
+Console.WriteLine($"Serve {config.PublicAddress} from {config.BackendAddress}");
+
 var connMux = await ConnectionMultiplexer.ConnectAsync(config.RedisHost);
 var services = builder.Services;
 services.AddSingleton(config);
