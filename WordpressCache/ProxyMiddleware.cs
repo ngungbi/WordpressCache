@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using WordpressCache.Extensions;
 using WordpressCache.Models;
 
 namespace WordpressCache;
@@ -13,8 +14,10 @@ public class ProxyMiddleware {
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
         var httpClient = services.HttpClient;
         var cache = services.Cache;
+        var logger = services.Logger;
 
         var method = GetMethod(context);
+        if (logger.IsInformation()) logger.LogInformation("{Method} {Path}", method, path);
 
         if (method == HttpMethod.Get) {
             var saved = cache.GetValue(path);
@@ -25,12 +28,16 @@ public class ProxyMiddleware {
 
             var response = await httpClient.GetAsync(path);
             await Serve(context, response);
-            if (response.IsSuccessStatusCode) await cache.SaveAsync(path, response);
+            if (response.IsSuccessStatusCode) {
+                await cache.SaveAsync(path, response);
+            } else {
+                logger.LogError("Error {StatusCode} - {Method} {Path} ", response.StatusCode, method, path);
+            }
         } else {
             var requestMessage = new HttpRequestMessage(method, path);
-            
+
             SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
-            
+
             var response = await httpClient.SendAsync(requestMessage);
             await Serve(context, response);
         }
@@ -41,7 +48,6 @@ public class ProxyMiddleware {
         targetHeaders.Connection.ParseAdd(contextHeaders.Connection);
         // targetHeaders.Date = DateTimeOffset.Parse(contextHeaders.Date);
         targetHeaders.CacheControl = CacheControlHeaderValue.Parse(contextHeaders.CacheControl);
-        
     }
 
     private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
@@ -56,7 +62,6 @@ public class ProxyMiddleware {
 
     private static HttpMethod GetMethod(HttpContext context) {
         var method = context.Request.Method;
-        Console.WriteLine(method);
         return method switch {
             "GET" => HttpMethod.Get,
             "POST" => HttpMethod.Post,
