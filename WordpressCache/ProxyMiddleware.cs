@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using WordpressCache.Extensions;
@@ -36,12 +37,14 @@ public class ProxyMiddleware {
                 logger.LogError("Error {StatusCode} - {Method} {Path} ", response.StatusCode, method, path);
             }
         } else {
-            var requestMessage = new HttpRequestMessage(method, path);
+            // var requestMessage = new HttpRequestMessage(method, path);
+            context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
+            await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
 
-            SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
-
-            var response = await httpClient.SendAsync(requestMessage);
-            await Serve(context, response);
+            // SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
+            //
+            // var response = await httpClient.SendAsync(requestMessage);
+            // await Serve(context, response);
         }
     }
 
@@ -53,9 +56,9 @@ public class ProxyMiddleware {
     }
 
     private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
-        foreach ((string? key, var value) in message.Headers) {
-            response.Headers[key] = string.Join("; ", value);
-        }
+        // foreach ((string? key, var value) in message.Headers) {
+        //     response.Headers[key] = string.Join("; ", value);
+        // }
 
         foreach ((string? key, var value) in message.Content.Headers) {
             response.Headers[key] = string.Join("; ", value);
