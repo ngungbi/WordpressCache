@@ -1,9 +1,9 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+﻿FROM mcr.microsoft.com/dotnet/aspnet:latest AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:latest AS build
 WORKDIR /src
 COPY ["WordpressCache/WordpressCache.csproj", "WordpressCache/"]
 RUN dotnet restore "WordpressCache/WordpressCache.csproj"
