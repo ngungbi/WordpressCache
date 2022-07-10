@@ -2,14 +2,16 @@
 A middleware for caching Wordpress to serve Wordpress as (almost) static website without PHP. 
 Built using ASP.NET core combined with Redis database.
 
+## Dependencies
+- Redis database
+
 ## Environment Variables
 - `PUBLIC_ADDRESS` Website public URL
 - `HOST` Hostname, typically domain name from `PUBLIC_ADDRESS`
 - `CACHE_TTL` Expiry of cache in seconds
 
-## Usage
-Using docker compose
-
+## Installation
+1. Using docker compose
 ```
 version: '1'
 
@@ -28,7 +30,7 @@ services:
    wordpress:
      image: wordpress:latest
      ports:
-       - 80
+       - 30002:80
      restart: always
      environment:
        WORDPRESS_DB_HOST: db:3306
@@ -42,7 +44,7 @@ services:
    cache:
      image: ngungbi/wordpress-cache
      ports:
-       - 80
+       - 30003:80
      environment:
        REDIS_HOST: redis:6379
        BACKEND_ADDRESS: http://wordpress
@@ -53,4 +55,37 @@ services:
 volumes:
     db_data:
 
+```
+
+2. Setup Nginx to cache only GET requests
+```
+server {
+    server_name example.com www.example.com;
+
+    client_max_body_size 50M;
+
+    # bypass admin page
+    location /wp-admin {
+        proxy_pass http://localhost:30002;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # use cache only for GET
+    location / {
+        proxy_pass http://localhost:30003;
+        proxy_set_header Host $http_host;
+
+        # for method other than GET, bypass
+        limit_except GET {
+            proxy_pass http://localhost:30002;
+        }
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```

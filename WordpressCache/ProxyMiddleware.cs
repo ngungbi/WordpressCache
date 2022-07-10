@@ -16,7 +16,7 @@ public class ProxyMiddleware {
         var cache = services.Cache;
         var logger = services.Logger;
 
-        var method = GetMethod(context);
+        var method = context.GetHttpMethod();
         if (logger.IsInformation()) logger.LogInformation("{Method} {Path}", method, path);
 
         if (method == HttpMethod.Get) {
@@ -28,7 +28,7 @@ public class ProxyMiddleware {
             }
 
             var response = await httpClient.GetAsync(path);
-            await Serve(context, response);
+            await context.Response.WriteAsync(response);
             if (response.IsSuccessStatusCode) {
                 await cache.SaveAsync(path, response);
                 if (logger.IsInformation()) logger.LogInformation("Save response to cache");
@@ -41,29 +41,6 @@ public class ProxyMiddleware {
             await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
             
         }
-    }
-
-    private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
-        foreach ((string? key, var value) in message.Content.Headers) {
-            response.Headers[key] = string.Join("; ", value);
-        }
-    }
-
-    private static HttpMethod GetMethod(HttpContext context) {
-        var method = context.Request.Method;
-        return method switch {
-            "GET" => HttpMethod.Get,
-            "POST" => HttpMethod.Post,
-            "PUT" => HttpMethod.Put,
-            "DELETE" => HttpMethod.Delete,
-            _ => throw new NotSupportedException()
-        };
-    }
-
-    private static async Task Serve(HttpContext context, HttpResponseMessage message) {
-        MapHeaders(message, context.Response);
-        var body = await message.Content.ReadAsByteArrayAsync();
-        await context.Response.BodyWriter.WriteAsync(body);
     }
 
     private static async Task Serve(HttpContext context, CachedMessage message) {
