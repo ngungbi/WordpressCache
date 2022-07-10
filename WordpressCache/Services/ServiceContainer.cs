@@ -1,6 +1,4 @@
-using StackExchange.Redis;
-
-namespace WordpressCache; 
+namespace WordpressCache.Services; 
 
 public class ServiceContainer {
     public HttpClient HttpClient { get; }

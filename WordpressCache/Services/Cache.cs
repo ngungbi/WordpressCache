@@ -1,10 +1,9 @@
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using StackExchange.Redis;
 using WordpressCache.Extensions;
 using WordpressCache.Models;
 
-namespace WordpressCache;
+namespace WordpressCache.Services;
 
 public interface ICache {
     CachedMessage? GetValue(string path);

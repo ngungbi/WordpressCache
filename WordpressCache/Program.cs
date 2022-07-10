@@ -1,5 +1,6 @@
 using StackExchange.Redis;
 using WordpressCache;
+using WordpressCache.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
