@@ -37,7 +37,13 @@ public sealed class ProxyMiddleware {
 
         var saved = cache.GetValue(path);
 
-        if (saved is not null && (saved.Expire >= Now || serverStatus.IsError)) {
+        var headers = context.Request.Headers;
+        var disableCache = headers.CacheControl.Contains("no-cache") && headers.Cookie.Count == 0;
+
+        if (saved is not null
+            && (saved.Expire >= Now || serverStatus.IsError)
+            && !disableCache
+           ) {
             // if (saved.Expire >= Now) {
             await Serve(context, saved);
             if (logger.IsInformation()) {
@@ -56,6 +62,11 @@ public sealed class ProxyMiddleware {
         try {
             var response = await httpClient.GetAsync(path);
             var body = await Serve(context, response);
+            if (disableCache) {
+                logger.LogInformation("Cache disabled");
+                return;
+            }
+
             if (response.IsSuccessStatusCode) {
                 if (context.Request.Query.Count == 0) {
                     cache.SaveAsync(path, response, body);
