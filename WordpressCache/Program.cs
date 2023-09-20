@@ -19,8 +19,8 @@ services.AddScoped<ServiceContainer>();
 services.AddHostedService<ServerMonitor>();
 services.AddHostedService<CacheUpdater>();
 
-var publicAddr = new Uri(config["Options:PublicAddress"]);
-var backendAddr = new Uri(config["Options:BackendAddress"]);
+var publicAddr = new Uri(config["PublicAddress"]);
+var backendAddr = new Uri(config["BackendAddress"]);
 
 Console.WriteLine("Wordpress Cache");
 Console.WriteLine($"Serve {publicAddr} from {backendAddr}");
@@ -36,6 +36,9 @@ var app = builder.Build();
 
 // app.MapGet("/", () => "Hello World!");
 app.UseMiddleware<ProxyMiddleware>();
+// app.MapGet("/*", ProxyMiddleware.Shared.InvokeAsync);
+// app.Use(ProxyMiddleware.Shared.InvokeAsync);
+// app.Run(ProxyMiddleware.InvokeAsync);
 
-var host = OperatingSystem.IsWindows() ? "https://localhost" : "http://*:80";
-app.Run(host);
+// var host = OperatingSystem.IsWindows() ? "https://localhost" : "http://*:80";
+app.Run();

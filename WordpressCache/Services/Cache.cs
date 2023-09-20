@@ -27,7 +27,10 @@ public class Cache : ICache {
 
     public CachedContent? GetValue(string path) {
         var headers = GetHeaders(path);
-        if (headers is null) return null;
+        if (headers is null) {
+            return null;
+        }
+
         var content = GetContent(path);
         var result = new CachedContent(headers) {
             Content = content
@@ -56,9 +59,11 @@ public class Cache : ICache {
 
     private IDictionary<string, string>? GetHeaders(string path) {
         var headerValues = _headerDb.StringGet(path);
-        if (!headerValues.HasValue) return null;
+        if (!headerValues.HasValue) {
+            return null;
+        }
+
         var results = headerValues.ToObject<Dictionary<string, string>>();
         return results;
     }
-    
 }
