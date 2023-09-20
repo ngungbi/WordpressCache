@@ -13,6 +13,7 @@ public sealed class GlobalOptions {
 
     public Uri BackendAddress { get; set; } = null!;
 
-    public int CacheTtl { get; set; }
+    public int CacheTtl { get; set; } = 2 * 3600;
     public long MaxSize { get; set; } = 10 * 1024 * 1024;
+    public int CheckInterval { get; set; } = 600;
 }

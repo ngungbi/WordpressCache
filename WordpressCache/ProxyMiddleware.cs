@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using WordpressCache.Config;
 using WordpressCache.Extensions;
 using WordpressCache.Models;
+using WordpressCache.Services;
 
 namespace WordpressCache;
 
@@ -17,58 +18,66 @@ public sealed class ProxyMiddleware {
         var path = context.Request.Path;
 
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
+        var serverStatus = context.RequestServices.GetRequiredService<ServerStatus>();
         var httpClient = services.HttpClient;
         var cache = services.Cache;
         var logger = services.Logger;
 
         var method = GetMethod(context);
-        if (logger.IsInformation()) logger.LogInformation("{Method} {Path}", method, path);
+        if (logger.IsInformation()) {
+            logger.LogInformation("{Method} {Path}", method, path);
+        }
 
-        if (method == HttpMethod.Get) {
-            var saved = cache.GetValue(path);
-            if (saved is not null && saved.Expire >= Now) {
+        if (method != HttpMethod.Get) {
+            // var requestMessage = new HttpRequestMessage(method, path);
+            context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
+            // await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
+            return;
+        }
+
+        var saved = cache.GetValue(path);
+
+        if (saved is not null) {
+            if (saved.Expire >= Now) {
                 await Serve(context, saved);
                 if (logger.IsInformation()) logger.LogInformation("Use cached response");
                 return;
             }
 
-            try {
-                var response = await httpClient.GetAsync(path);
-                var body = await Serve(context, response);
-                if (response.IsSuccessStatusCode) {
-                    if (context.Request.Query.Count == 0) {
-                        cache.SaveAsync(path, response, body);
-                    }
-
-                    if (logger.IsInformation()) {
-                        logger.LogInformation("Save response to cache: {Method} {Path}", method, path);
-                    }
-                } else if (saved != null && (int) response.StatusCode >= 500) {
-                    logger.LogWarning(
-                        "Error from backend server: {StatusCode} {Method} {Path}, serving cached response",
-                        response.StatusCode, method, path
-                    );
-                    await Serve(context, saved);
-                } else {
-                    logger.LogError("Error {StatusCode} - {Method} {Path}", response.StatusCode, method, path);
-                }
-            } catch (HttpRequestException e) {
-                if (saved != null) {
-                    logger.LogWarning("Failed to contact backend server: {Method} {Path}, serving cached response", method, path);
-                    await Serve(context, saved);
-                } else {
-                    logger.LogError(e, "Failed to contact backend server: {Method} {Path}, no cached response", method, path);
-                }
+            if (serverStatus.IsError) {
+                await Serve(context, saved);
+                return;
             }
-        } else {
-            // var requestMessage = new HttpRequestMessage(method, path);
-            context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
-            await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
+        }
 
-            // SetRequestHeaders(requestMessage.Headers, context.Request.Headers);
-            //
-            // var response = await httpClient.SendAsync(requestMessage);
-            // await Serve(context, response);
+        try {
+            var response = await httpClient.GetAsync(path);
+            var body = await Serve(context, response);
+            if (response.IsSuccessStatusCode) {
+                if (context.Request.Query.Count == 0) {
+                    cache.SaveAsync(path, response, body);
+                }
+
+                if (logger.IsInformation()) {
+                    logger.LogInformation("Save response to cache: {Method} {Path}", method, path);
+                }
+            } else if (saved != null && (int) response.StatusCode >= 500) {
+                logger.LogWarning(
+                    "Error from backend server: {StatusCode} {Method} {Path}, serving cached response",
+                    response.StatusCode, method, path
+                );
+                await Serve(context, saved);
+            } else {
+                logger.LogError("Error {StatusCode} - {Method} {Path}", response.StatusCode, method, path);
+            }
+        } catch (HttpRequestException e) {
+            serverStatus.MaskAsError();
+            if (saved != null) {
+                logger.LogWarning("Failed to contact backend server: {Method} {Path}, serving cached response", method, path);
+                await Serve(context, saved);
+            } else {
+                logger.LogError(e, "Failed to contact backend server: {Method} {Path}, no cached response", method, path);
+            }
         }
     }
 

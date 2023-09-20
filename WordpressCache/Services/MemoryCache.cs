@@ -13,6 +13,8 @@ public sealed class MemoryCache : ICache {
 
     private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
+    public IDictionary<string, CachedContent> Values => _cache;
+
     public MemoryCache(IOptions<GlobalOptions> options) {
         _options = options.Value;
     }
