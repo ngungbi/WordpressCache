@@ -35,6 +35,7 @@ public sealed class CacheUpdater : BackgroundService {
         var timer = new PeriodicTimer(TimeSpan.FromHours(2));
         while (!stoppingToken.IsCancellationRequested) {
             await timer.WaitForNextTickAsync(stoppingToken);
+            _logger.LogInformation("Updating cache contents");
             if (_serverStatus.IsError) {
                 continue;
             }

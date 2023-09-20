@@ -28,7 +28,8 @@ public sealed class ServerStatus {
     }
 
     public async Task CheckStatusAsync() {
-        if (_lastCheck > Now - _options.CheckInterval) {
+        var now = Now;
+        if (_lastCheck > now - _options.CheckInterval) {
             return;
         }
 
@@ -40,6 +41,8 @@ public sealed class ServerStatus {
             } else {
                 _logger.LogWarning("Response code is not success status code");
             }
+
+            // _lastCheck = now;
         } catch (HttpRequestException) {
             _logger.LogError("Backend server down");
             IsError = true;
