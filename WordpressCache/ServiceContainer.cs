@@ -2,7 +2,7 @@ using StackExchange.Redis;
 
 namespace WordpressCache; 
 
-public class ServiceContainer {
+public sealed class ServiceContainer {
     public HttpClient HttpClient { get; }
     public ICache Cache { get; }
     public ILogger<ProxyMiddleware> Logger { get; }
