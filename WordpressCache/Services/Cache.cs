@@ -6,8 +6,8 @@ using WordpressCache.Models;
 namespace WordpressCache.Services;
 
 public interface ICache {
-    CachedMessage? GetValue(string path);
-    Task SaveAsync(string path, HttpResponseMessage message);
+    CachedContent? GetValue(string path);
+    void SaveAsync(string path, HttpResponseMessage message, byte[] content);
 }
 
 public class Cache : ICache {
@@ -25,26 +25,27 @@ public class Cache : ICache {
         _contentDb = mux.GetDatabase(1);
     }
 
-    public CachedMessage? GetValue(string path) {
+    public CachedContent? GetValue(string path) {
         var headers = GetHeaders(path);
         if (headers is null) return null;
         var content = GetContent(path);
-        var result = new CachedMessage(headers) {
+        var result = new CachedContent(headers) {
             Content = content
         };
         return result;
     }
 
-    public async Task SaveAsync(string path, HttpResponseMessage message) {
+    public void SaveAsync(string path, HttpResponseMessage message, byte[] content) {
         var headers = message.Content.Headers.ToDictionary(x => x.Key, x => string.Join("; ", x.Value));
-        var content = await message.Content.ReadAsByteArrayAsync();
-        var value = new CachedMessage(headers) {
+        // var content = await message.Content.ReadAsByteArrayAsync();
+        var value = new CachedContent(headers) {
             Content = content
         };
         SetValue(path, value);
+        // return Task.CompletedTask;
     }
 
-    private void SetValue(string path, CachedMessage value) {
+    private void SetValue(string path, CachedContent value) {
         _headerDb.StringSet(path, value.Headers.ToJsonString(), _defaultExpiry, When.Always, CommandFlags.FireAndForget);
         _contentDb.StringSet(path, value.Content, _contentExpiry, When.Always, CommandFlags.FireAndForget);
     }

@@ -1,26 +1,35 @@
-using StackExchange.Redis;
 using WordpressCache;
+using WordpressCache.Config;
 using WordpressCache.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var config = new GlobalConfig(builder.Configuration);
+// var config = new GlobalConfig(builder.Configuration);
+var config = builder.Configuration;
 
-Console.WriteLine("Wordpress Cache");
-Console.WriteLine($"Serve {config.PublicAddress} from {config.BackendAddress}");
 
-var connMux = await ConnectionMultiplexer.ConnectAsync(config.RedisHost);
+// var connMux = await ConnectionMultiplexer.ConnectAsync(config.RedisHost);
 var services = builder.Services;
+services.Configure<GlobalOptions>(config.GetSection("Options"));
 services.AddSingleton(config);
-services.AddSingleton<IConnectionMultiplexer>(connMux);
-services.AddSingleton<ICache, Cache>();
+// services.AddSingleton<IConnectionMultiplexer>(connMux);
+services.AddSingleton<ICache, MemoryCache>();
 services.AddScoped<ServiceContainer>();
 
+services.AddHostedService<ServerMonitor>();
+services.AddHostedService<CacheUpdater>();
+
+var publicAddr = new Uri(config["Options:PublicAddress"]);
+var backendAddr = new Uri(config["Options:BackendAddress"]);
+
+Console.WriteLine("Wordpress Cache");
+Console.WriteLine($"Serve {publicAddr} from {backendAddr}");
+
 services.AddHttpClient(
-    "wp", x => {
-        x.BaseAddress = new Uri(config.BackendAddress);
-        x.DefaultRequestHeaders.Host = config.Host;
-        x.DefaultRequestHeaders.Add("x-forwarded-proto", config.Scheme);
+    "wp", client => {
+        client.BaseAddress = backendAddr;
+        client.DefaultRequestHeaders.Host = backendAddr.Host;
+        client.DefaultRequestHeaders.Add("x-forwarded-proto", publicAddr.Scheme);
     }
 );
 var app = builder.Build();
