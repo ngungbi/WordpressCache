@@ -27,9 +27,9 @@ Console.WriteLine("Wordpress Cache");
 Console.WriteLine($"Serve {publicAddr} from {backendAddr}");
 
 services.AddHttpClient(
-    "wp", client => {
+    "WP", client => {
         client.BaseAddress = backendAddr;
-        client.DefaultRequestHeaders.Host = backendAddr.Host;
+        client.DefaultRequestHeaders.Host = publicAddr.Host;
         client.DefaultRequestHeaders.Add("x-forwarded-proto", publicAddr.Scheme);
     }
 );

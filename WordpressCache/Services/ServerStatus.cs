@@ -32,7 +32,7 @@ public sealed class ServerStatus {
             return;
         }
 
-        var client = _httpClientFactory.CreateClient("wp");
+        var client = _httpClientFactory.CreateClient("WP");
         try {
             var respone = await client.GetAsync("/");
             if (respone.IsSuccessStatusCode) {

@@ -6,7 +6,7 @@ public sealed class ServiceContainer {
     public ILogger<ProxyMiddleware> Logger { get; }
 
     public ServiceContainer(IHttpClientFactory httpClientFactory, ICache cache, ILoggerFactory logger) {
-        HttpClient = httpClientFactory.CreateClient("wp");
+        HttpClient = httpClientFactory.CreateClient("WP");
         Cache = cache;
         Logger = logger.CreateLogger<ProxyMiddleware>();
     }
