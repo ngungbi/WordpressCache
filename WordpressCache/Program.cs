@@ -14,6 +14,7 @@ services.Configure<GlobalOptions>(config.GetSection("Options"));
 services.AddSingleton(config);
 // services.AddSingleton<IConnectionMultiplexer>(connMux);
 services.AddSingleton<ICache, MemoryCache>();
+services.AddSingleton<ServerStatus>();
 services.AddScoped<ServiceContainer>();
 
 services.AddHostedService<ServerMonitor>();
