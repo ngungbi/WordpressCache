@@ -16,6 +16,9 @@ services.AddSingleton(config);
 services.AddSingleton<ICache, MemoryCache>();
 services.AddScoped<ServiceContainer>();
 
+services.AddHostedService<ServerMonitor>();
+services.AddHostedService<CacheUpdater>();
+
 var publicAddr = new Uri(config["Options:PublicAddress"]);
 var backendAddr = new Uri(config["Options:BackendAddress"]);
 

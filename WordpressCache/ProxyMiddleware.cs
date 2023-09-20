@@ -23,12 +23,12 @@ public sealed class ProxyMiddleware {
         var cache = services.Cache;
         var logger = services.Logger;
 
-        var method = GetMethod(context);
+        var method = context.Request.Method;
         if (logger.IsInformation()) {
             logger.LogInformation("{Method} {Path}", method, path);
         }
 
-        if (method != HttpMethod.Get) {
+        if (!HttpMethods.IsGet(method)) {
             // var requestMessage = new HttpRequestMessage(method, path);
             context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
             // await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
@@ -37,17 +37,20 @@ public sealed class ProxyMiddleware {
 
         var saved = cache.GetValue(path);
 
-        if (saved is not null) {
-            if (saved.Expire >= Now) {
-                await Serve(context, saved);
-                if (logger.IsInformation()) logger.LogInformation("Use cached response");
-                return;
+        if (saved is not null && (saved.Expire >= Now || serverStatus.IsError)) {
+            // if (saved.Expire >= Now) {
+            await Serve(context, saved);
+            if (logger.IsInformation()) {
+                logger.LogInformation("Use cached response");
             }
 
-            if (serverStatus.IsError) {
-                await Serve(context, saved);
-                return;
-            }
+            return;
+            // }
+            //
+            // if (serverStatus.IsError) {
+            //     await Serve(context, saved);
+            //     return;
+            // }
         }
 
         try {
@@ -69,6 +72,7 @@ public sealed class ProxyMiddleware {
                 await Serve(context, saved);
             } else {
                 logger.LogError("Error {StatusCode} - {Method} {Path}", response.StatusCode, method, path);
+                await UnderMaintenance(context);
             }
         } catch (HttpRequestException e) {
             serverStatus.MaskAsError();
@@ -77,6 +81,7 @@ public sealed class ProxyMiddleware {
                 await Serve(context, saved);
             } else {
                 logger.LogError(e, "Failed to contact backend server: {Method} {Path}, no cached response", method, path);
+                await UnderMaintenance(context);
             }
         }
     }
@@ -107,6 +112,13 @@ public sealed class ProxyMiddleware {
             "DELETE" => HttpMethod.Delete,
             _ => throw new NotSupportedException()
         };
+    }
+
+    private static async Task UnderMaintenance(HttpContext context) {
+        var response = context.Response;
+        response.Headers.RetryAfter = "3600";
+        response.StatusCode = (int) HttpStatusCode.ServiceUnavailable;
+        await response.WriteAsync("Under Maintenance");
     }
 
     private static async Task<byte[]> Serve(HttpContext context, HttpResponseMessage message) {

@@ -51,6 +51,8 @@ public sealed class CacheUpdater : BackgroundService {
                     } else {
                         _cache.SaveAsync(path, response, Array.Empty<byte>());
                     }
+
+                    await Task.Delay(20_000, stoppingToken);
                 }
             } catch (HttpRequestException) {
                 _serverStatus.MaskAsError();
