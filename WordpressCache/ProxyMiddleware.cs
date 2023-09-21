@@ -47,9 +47,8 @@ public sealed class ProxyMiddleware {
         var serverStatus = services.ServerStatus; // context.RequestServices.GetRequiredService<ServerStatus>();
 
         var headers = context.Request.Headers;
-        var disableCache = headers.CacheControl.Count > 0
-                           && headers.CacheControl.Contains("no-cache")
-                           && headers.Cookie.Count > 0;
+        var disableCache = (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"))
+                           || headers.Cookie.Count > 0;
 
         if (saved is not null
             && (saved.Expire >= Now || serverStatus.IsError)
