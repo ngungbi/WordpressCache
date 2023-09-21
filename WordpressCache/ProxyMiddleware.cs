@@ -18,7 +18,7 @@ public sealed class ProxyMiddleware {
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
         // var httpClient = services.HttpClient;
         var logger = services.Logger;
-        var sessionId = context.Session.Id;
+        var sessionId = context.Connection.Id;
 
         var method = context.Request.Method;
         if (logger.IsInformation()) {
