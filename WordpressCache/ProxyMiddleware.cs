@@ -15,7 +15,7 @@ public sealed class ProxyMiddleware {
     public ProxyMiddleware(RequestDelegate next) { }
 
     public async Task InvokeAsync(HttpContext context) {
-        var path = context.Request.Path;
+        var path = context.Request.Path + context.Request.QueryString;
 
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
         var serverStatus = context.RequestServices.GetRequiredService<ServerStatus>();
@@ -38,7 +38,7 @@ public sealed class ProxyMiddleware {
         var saved = cache.GetValue(path);
 
         var headers = context.Request.Headers;
-        var disableCache = headers.CacheControl.Contains("no-cache") && headers.Cookie.Count == 0;
+        var disableCache = headers.CacheControl.Contains("no-cache") && headers.Cookie.Count > 0;
 
         if (saved is not null
             && (saved.Expire >= Now || serverStatus.IsError)
@@ -61,6 +61,10 @@ public sealed class ProxyMiddleware {
 
         try {
             var response = await httpClient.GetAsync(path);
+            if ((int) response.StatusCode >= 500) {
+                throw new HttpRequestException("Server error");
+            }
+
             var body = await Serve(context, response);
             if (disableCache) {
                 logger.LogInformation("Cache disabled");
@@ -75,15 +79,15 @@ public sealed class ProxyMiddleware {
                 if (logger.IsInformation()) {
                     logger.LogInformation("Save response to cache: {Method} {Path}", method, path);
                 }
-            } else if (saved != null && (int) response.StatusCode >= 500) {
-                logger.LogWarning(
-                    "Error from backend server: {StatusCode} {Method} {Path}, serving cached response",
-                    response.StatusCode, method, path
-                );
-                await Serve(context, saved);
+                // } else if (saved != null && (int) response.StatusCode >= 500) {
+                //     logger.LogWarning(
+                //         "Error from backend server: {StatusCode} {Method} {Path}, serving cached response",
+                //         response.StatusCode, method, path
+                //     );
+                // await Serve(context, saved);
             } else {
                 logger.LogError("Error {StatusCode} - {Method} {Path}", response.StatusCode, method, path);
-                await UnderMaintenance(context);
+                // await UnderMaintenance(context);
             }
         } catch (HttpRequestException e) {
             serverStatus.MaskAsError();
