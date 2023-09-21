@@ -16,4 +16,5 @@ public sealed class GlobalOptions {
     public int CacheTtl { get; set; } = 2 * 3600;
     public long MaxSize { get; set; } = 10 * 1024 * 1024;
     public int CheckInterval { get; set; } = 600;
+    public int UpdateInterval { get; set; } = 7200;
 }

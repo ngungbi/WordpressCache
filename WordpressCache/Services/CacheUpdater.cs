@@ -32,7 +32,13 @@ public sealed class CacheUpdater : BackgroundService {
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
-        var timer = new PeriodicTimer(TimeSpan.FromHours(2));
+        var interval = _options.UpdateInterval;
+        if (interval <= 0) {
+            _logger.LogInformation("Periodic update disabled");
+            return;
+        }
+
+        var timer = new PeriodicTimer(TimeSpan.FromHours(interval));
         while (!stoppingToken.IsCancellationRequested) {
             await timer.WaitForNextTickAsync(stoppingToken);
             _logger.LogInformation("Updating cache contents");

@@ -15,30 +15,38 @@ public sealed class ProxyMiddleware {
     public ProxyMiddleware(RequestDelegate next) { }
 
     public async Task InvokeAsync(HttpContext context) {
-        var path = context.Request.Path + context.Request.QueryString;
-
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
-        var serverStatus = context.RequestServices.GetRequiredService<ServerStatus>();
-        var httpClient = services.HttpClient;
-        var cache = services.Cache;
+        // var httpClient = services.HttpClient;
         var logger = services.Logger;
 
         var method = context.Request.Method;
         if (logger.IsInformation()) {
-            logger.LogInformation("{Method} {Path}", method, path);
+            logger.LogInformation(
+                "{Method} {Path}{QueryString}",
+                method,
+                context.Request.Path,
+                context.Request.QueryString
+            );
         }
 
         if (!HttpMethods.IsGet(method)) {
             // var requestMessage = new HttpRequestMessage(method, path);
-            context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
+            // context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
             // await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
+            var client = services.HttpClient;
+            await ForwardRequestAsync(context, client);
             return;
         }
 
+        var path = context.Request.Path + context.Request.QueryString;
+        var cache = services.Cache;
         var saved = cache.GetValue(path);
+        var serverStatus = services.ServerStatus; // context.RequestServices.GetRequiredService<ServerStatus>();
 
         var headers = context.Request.Headers;
-        var disableCache = headers.CacheControl.Contains("no-cache") && headers.Cookie.Count > 0;
+        var disableCache = headers.CacheControl.Count > 0
+                           && headers.CacheControl.Contains("no-cache")
+                           && headers.Cookie.Count > 0;
 
         if (saved is not null
             && (saved.Expire >= Now || serverStatus.IsError)
@@ -60,21 +68,24 @@ public sealed class ProxyMiddleware {
         }
 
         try {
-            var response = await httpClient.GetAsync(path);
+            var client = services.HttpClient;
+            var response = await client.GetAsync(path);
             if ((int) response.StatusCode >= 500) {
                 throw new HttpRequestException("Server error");
             }
 
-            var body = await Serve(context, response);
             if (disableCache) {
                 logger.LogInformation("Cache disabled");
+                await ServeNoCaching(context, response);
                 return;
             }
 
+            var body = await Serve(context, response);
+
             if (response.IsSuccessStatusCode) {
-                if (context.Request.Query.Count == 0) {
-                    cache.SaveAsync(path, response, body);
-                }
+                // if (context.Request.Query.Count == 0) {
+                cache.SaveAsync(path, response, body);
+                // }
 
                 if (logger.IsInformation()) {
                     logger.LogInformation("Save response to cache: {Method} {Path}", method, path);
@@ -98,7 +109,24 @@ public sealed class ProxyMiddleware {
                 logger.LogError(e, "Failed to contact backend server: {Method} {Path}, no cached response", method, path);
                 await UnderMaintenance(context);
             }
+        } catch (NotSupportedException) {
+            context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
         }
+    }
+
+    private static async Task ForwardRequestAsync(HttpContext context, HttpClient client) {
+        var request = context.Request;
+        CopyRequestHeader(request, client);
+        var uri = new UriBuilder(request.Path) {
+            Query = request.QueryString.ToUriComponent()
+        };
+        using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
+        var responseMessage = await client.SendAsync(message);
+
+        var response = context.Response;
+        CopyResponseHeaders(responseMessage, context.Response);
+        response.StatusCode = (int) responseMessage.StatusCode;
+        await responseMessage.Content.CopyToAsync(response.Body);
     }
 
     private static void SetRequestHeaders(HttpRequestHeaders targetHeaders, IHeaderDictionary contextHeaders) {
@@ -108,7 +136,7 @@ public sealed class ProxyMiddleware {
         targetHeaders.CacheControl = CacheControlHeaderValue.Parse(contextHeaders.CacheControl);
     }
 
-    private static void MapHeaders(HttpResponseMessage message, HttpResponse response) {
+    private static void CopyResponseHeaders(HttpResponseMessage message, HttpResponse response) {
         // foreach ((string? key, var value) in message.Headers) {
         //     response.Headers[key] = string.Join("; ", value);
         // }
@@ -118,8 +146,10 @@ public sealed class ProxyMiddleware {
         }
     }
 
-    private static HttpMethod GetMethod(HttpContext context) {
-        var method = context.Request.Method;
+    private static HttpMethod GetMethod(HttpContext context) => GetMethod(context.Request);
+
+    private static HttpMethod GetMethod(HttpRequest request) {
+        var method = request.Method;
         return method switch {
             "GET" => HttpMethod.Get,
             "POST" => HttpMethod.Post,
@@ -138,7 +168,7 @@ public sealed class ProxyMiddleware {
 
     private static async Task<byte[]> Serve(HttpContext context, HttpResponseMessage message) {
         var options = context.RequestServices.GetRequiredService<IOptions<GlobalOptions>>().Value;
-        MapHeaders(message, context.Response);
+        CopyResponseHeaders(message, context.Response);
         if (message.Content.Headers.ContentLength < options.MaxSize) {
             var body = await message.Content.ReadAsByteArrayAsync();
             await context.Response.BodyWriter.WriteAsync(body);
@@ -147,6 +177,18 @@ public sealed class ProxyMiddleware {
 
         await message.Content.CopyToAsync(context.Response.Body);
         return Array.Empty<byte>();
+        // await using var writer = new StreamWriter(context.Response.Body);
+    }
+
+    private static void CopyRequestHeader(HttpRequest request, HttpClient client) {
+        foreach (var item in request.Headers) {
+            client.DefaultRequestHeaders.Add(item.Key, string.Join("; ", item.Value));
+        }
+    }
+
+    private static async Task ServeNoCaching(HttpContext context, HttpResponseMessage message) {
+        CopyResponseHeaders(message, context.Response);
+        await message.Content.CopyToAsync(context.Response.Body);
         // await using var writer = new StreamWriter(context.Response.Body);
     }
 
