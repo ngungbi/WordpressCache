@@ -18,11 +18,13 @@ public sealed class ProxyMiddleware {
         var services = context.RequestServices.GetRequiredService<ServiceContainer>();
         // var httpClient = services.HttpClient;
         var logger = services.Logger;
+        var sessionId = context.Session.Id;
 
         var method = context.Request.Method;
         if (logger.IsInformation()) {
             logger.LogInformation(
-                "{Method} {Path}{QueryString}",
+                "{Session}: {Method} {Path}{QueryString}",
+                sessionId,
                 method,
                 context.Request.Path,
                 context.Request.QueryString
@@ -30,6 +32,7 @@ public sealed class ProxyMiddleware {
         }
 
         if (!HttpMethods.IsGet(method)) {
+            // logger.LogInformation("{SessionId} Method is {Method}", sessionId, method);
             // var requestMessage = new HttpRequestMessage(method, path);
             // context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
             // await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
@@ -55,7 +58,7 @@ public sealed class ProxyMiddleware {
             // if (saved.Expire >= Now) {
             await Serve(context, saved);
             if (logger.IsInformation()) {
-                logger.LogInformation("Use cached response");
+                logger.LogInformation("{SessionId}: Use cached response", sessionId);
             }
 
             return;
@@ -68,14 +71,21 @@ public sealed class ProxyMiddleware {
         }
 
         try {
+            // var options = services
             var client = services.HttpClient;
+            // CopyRequestHeader(context.Request, client);
+
             var response = await client.GetAsync(path);
             if ((int) response.StatusCode >= 500) {
-                throw new HttpRequestException("Server error");
+                throw new HttpRequestException($"{sessionId}: Server error - {response.StatusCode}");
+            }
+
+            if (logger.IsInformation()) {
+                logger.LogInformation("{SessionId}: Status code {StatusCode}", sessionId, (int) response.StatusCode);
             }
 
             if (disableCache) {
-                logger.LogInformation("Cache disabled");
+                logger.LogInformation("{SessionId} Cache disabled", sessionId);
                 await ServeNoCaching(context, response);
                 return;
             }
@@ -88,7 +98,7 @@ public sealed class ProxyMiddleware {
                 // }
 
                 if (logger.IsInformation()) {
-                    logger.LogInformation("Save response to cache: {Method} {Path}", method, path);
+                    logger.LogInformation("{SessionId}: Save response to cache: {Method} {Path}", sessionId, method, path);
                 }
                 // } else if (saved != null && (int) response.StatusCode >= 500) {
                 //     logger.LogWarning(
@@ -97,16 +107,16 @@ public sealed class ProxyMiddleware {
                 //     );
                 // await Serve(context, saved);
             } else {
-                logger.LogError("Error {StatusCode} - {Method} {Path}", response.StatusCode, method, path);
+                logger.LogError("{SessionId} Error {StatusCode} - {Method} {Path}", sessionId, response.StatusCode, method, path);
                 // await UnderMaintenance(context);
             }
         } catch (HttpRequestException e) {
             serverStatus.MaskAsError();
             if (saved != null) {
-                logger.LogWarning("Failed to contact backend server: {Method} {Path}, serving cached response", method, path);
+                logger.LogWarning("{SessionId}: Failed to contact backend server: {Method} {Path}, serving cached response", sessionId, method, path);
                 await Serve(context, saved);
             } else {
-                logger.LogError(e, "Failed to contact backend server: {Method} {Path}, no cached response", method, path);
+                logger.LogError(e, "{SessionId}: Failed to contact backend server: {Method} {Path}, no cached response", sessionId, method, path);
                 await UnderMaintenance(context);
             }
         } catch (NotSupportedException) {
@@ -175,6 +185,8 @@ public sealed class ProxyMiddleware {
             return body;
         }
 
+        context.Response.StatusCode = (int) message.StatusCode;
+
         await message.Content.CopyToAsync(context.Response.Body);
         return Array.Empty<byte>();
         // await using var writer = new StreamWriter(context.Response.Body);
@@ -188,6 +200,7 @@ public sealed class ProxyMiddleware {
 
     private static async Task ServeNoCaching(HttpContext context, HttpResponseMessage message) {
         CopyResponseHeaders(message, context.Response);
+        context.Response.StatusCode = (int) message.StatusCode;
         await message.Content.CopyToAsync(context.Response.Body);
         // await using var writer = new StreamWriter(context.Response.Body);
     }
