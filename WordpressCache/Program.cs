@@ -35,6 +35,14 @@ services.AddHttpClient(
 );
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope()) {
+    var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
+    var response = await httpClient.GetAsync("/");
+    response.EnsureSuccessStatusCode();
+    var content = await response.Content.ReadAsStringAsync();
+    Console.WriteLine(content);
+}
+
 // app.MapGet("/", () => "Hello World!");
 app.UseMiddleware<ProxyMiddleware>();
 // app.MapGet("/*", ProxyMiddleware.Shared.InvokeAsync);
