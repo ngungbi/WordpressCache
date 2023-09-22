@@ -47,12 +47,12 @@ public sealed class ProxyMiddleware {
         var serverStatus = services.ServerStatus; // context.RequestServices.GetRequiredService<ServerStatus>();
 
         var headers = context.Request.Headers;
-        var disableCache = (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"))
-                           || headers.Cookie.Count > 0;
+        var hasCookie = headers.Cookie.Count > 0;
+        var disableCache = hasCookie || (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"));
 
-        if (saved is not null
+        if (!disableCache
+            && saved is not null
             && (saved.Expire >= Now || serverStatus.IsError)
-            && !disableCache
            ) {
             // if (saved.Expire >= Now) {
             await Serve(context, saved);
@@ -73,8 +73,21 @@ public sealed class ProxyMiddleware {
             // var options = services
             var client = services.HttpClient;
             // CopyRequestHeader(context.Request, client);
+            HttpResponseMessage response;
+            if (hasCookie) {
+                var url = new UriBuilder(client.BaseAddress!) {
+                    Path = context.Request.Path,
+                    Query = context.Request.QueryString.ToUriComponent()
+                };
+                var msg = new HttpRequestMessage(GetMethod(context.Request), url.Uri);
+                msg.Headers.Add("Cache-Control", string.Join("; ", headers.CacheControl));
+                msg.Headers.Add("Cookie", string.Join("; ", headers.Cookie));
+                response = await client.SendAsync(msg);
+            } else {
+                response = await client.GetAsync(path);
+            }
 
-            var response = await client.GetAsync(path);
+            // var response = await client.GetAsync(path);
             if ((int) response.StatusCode >= 500) {
                 throw new HttpRequestException($"{sessionId}: Server error - {response.StatusCode}");
             }

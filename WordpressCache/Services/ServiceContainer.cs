@@ -1,9 +1,13 @@
+using Microsoft.Extensions.Options;
+using WordpressCache.Config;
+
 namespace WordpressCache.Services;
 
 public sealed class ServiceContainer {
     public HttpClient HttpClient => _services.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
     public ICache Cache => _services.GetRequiredService<ICache>();
     public ServerStatus ServerStatus => _services.GetRequiredService<ServerStatus>();
+    public GlobalOptions Options => _services.GetRequiredService<IOptions<GlobalOptions>>().Value;
     public ILogger<ProxyMiddleware> Logger { get; }
 
     private readonly IServiceProvider _services;

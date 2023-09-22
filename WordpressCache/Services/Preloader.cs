@@ -8,7 +8,7 @@ namespace WordpressCache.Services;
 public interface IPreloader {
     Task LoadAsync();
     Task SaveAsync();
-    Task UpdateAllAsync();
+    Task UpdateAllAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class Preloader : IPreloader {
@@ -29,6 +29,10 @@ public sealed class Preloader : IPreloader {
 
     public async Task LoadAsync() {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
+        if (!File.Exists(filePath)) {
+            File.Create(filePath);
+        }
+
         // await using var file = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
         var lines = await File.ReadAllLinesAsync(filePath);
         foreach (string line in lines) {
@@ -82,17 +86,17 @@ public sealed class Preloader : IPreloader {
         }
     }
 
-    public async Task UpdateAllAsync() {
+    public async Task UpdateAllAsync(CancellationToken cancellationToken = default) {
         var client = _httpClientFactory.CreateClient("WP");
         var list = _dictionary.Keys.ToList();
         foreach (string item in list) {
             try {
-                var responseMessage = await client.GetAsync(item);
+                var responseMessage = await client.GetAsync(item, cancellationToken);
                 if (!responseMessage.IsSuccessStatusCode) {
                     continue;
                 }
 
-                var content = await responseMessage.Content.ReadAsByteArrayAsync();
+                var content = await responseMessage.Content.ReadAsByteArrayAsync(cancellationToken);
                 if (content.Length > _options.MaxSize) {
                     continue;
                 }

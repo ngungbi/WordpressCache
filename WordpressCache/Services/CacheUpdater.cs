@@ -42,33 +42,37 @@ public sealed class CacheUpdater : BackgroundService {
         }
 
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(interval));
-        while (!stoppingToken.IsCancellationRequested) {
-            await timer.WaitForNextTickAsync(stoppingToken);
-            _logger.LogInformation("Updating cache contents");
-            if (_serverStatus.IsError) {
-                continue;
-            }
-
-            var client = _httpClientFactory.CreateClient("wp");
-            try {
-                foreach (string path in _paths) {
-                    var response = await client.GetAsync(path, stoppingToken);
-                    if (!response.IsSuccessStatusCode) continue;
-                    var contentLength = response.Content.Headers.ContentLength;
-                    if (contentLength <= _options.MaxSize) {
-                        var body = await response.Content.ReadAsByteArrayAsync(stoppingToken);
-                        _cache.Save(path, response, body);
-                    } else {
-                        _cache.Save(path, response, Array.Empty<byte>());
-                    }
-
-                    await Task.Delay(20_000, stoppingToken);
+        try {
+            while (!stoppingToken.IsCancellationRequested) {
+                await timer.WaitForNextTickAsync(stoppingToken);
+                _logger.LogInformation("Updating cache contents");
+                if (_serverStatus.IsError) {
+                    continue;
                 }
-            } catch (HttpRequestException) {
-                _serverStatus.MaskAsError();
-            } finally {
-                await _preloader.SaveAsync();
+
+                var client = _httpClientFactory.CreateClient("wp");
+                try {
+                    foreach (string path in _paths) {
+                        var response = await client.GetAsync(path, stoppingToken);
+                        if (!response.IsSuccessStatusCode) continue;
+                        var contentLength = response.Content.Headers.ContentLength;
+                        if (contentLength <= _options.MaxSize) {
+                            var body = await response.Content.ReadAsByteArrayAsync(stoppingToken);
+                            _cache.Save(path, response, body);
+                        } else {
+                            _cache.Save(path, response, Array.Empty<byte>());
+                        }
+
+                        await Task.Delay(20_000, stoppingToken);
+                    }
+                } catch (HttpRequestException) {
+                    _serverStatus.MaskAsError();
+                } finally {
+                    await _preloader.SaveAsync();
+                }
             }
+        } catch (TaskCanceledException) {
+            await _preloader.SaveAsync();
         }
 
         throw new InvalidOperationException();
