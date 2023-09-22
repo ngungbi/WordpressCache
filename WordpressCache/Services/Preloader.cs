@@ -41,7 +41,8 @@ public sealed class Preloader : IPreloader {
             }
 
             var questionMark = line.IndexOf('?');
-            var path = questionMark == -1 ? line : line[..questionMark];
+            var hasQueryString = questionMark >= 0;
+            var path = hasQueryString ? line[..questionMark] : line;
             var headerPath = GetMetadataPath(path);
             if (!File.Exists(headerPath)) {
                 _dictionary.TryAdd(line, new CachedContent());
@@ -59,6 +60,9 @@ public sealed class Preloader : IPreloader {
             if (File.Exists(contentPath)) {
                 var content = await File.ReadAllBytesAsync(contentPath);
                 cached.Content = content;
+                if (hasQueryString) {
+                    cached.Expire = 0;
+                }
             } else {
                 cached.Expire = 0;
             }
@@ -75,7 +79,8 @@ public sealed class Preloader : IPreloader {
         await File.WriteAllLinesAsync(filePath, _dictionary.Keys);
         foreach (var item in _dictionary) {
             var questionMark = item.Key.IndexOf('?');
-            var path = questionMark == -1 ? item.Key : item.Key[..questionMark];
+            var hasQueryString = questionMark >= 0;
+            var path = hasQueryString ? item.Key[..questionMark] : item.Key;
             var headerPath = GetMetadataPath(path);
             var contentPath = GetContentPath(path);
 
