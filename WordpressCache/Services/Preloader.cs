@@ -40,7 +40,9 @@ public sealed class Preloader : IPreloader {
                 continue;
             }
 
-            var headerPath = GetMetadataPath(line);
+            var questionMark = line.IndexOf('?');
+            var path = questionMark == -1 ? line : line[..questionMark];
+            var headerPath = GetMetadataPath(path);
             if (!File.Exists(headerPath)) {
                 _dictionary.TryAdd(line, new CachedContent());
                 continue;
@@ -53,7 +55,7 @@ public sealed class Preloader : IPreloader {
                 continue;
             }
 
-            var contentPath = GetContentPath(line);
+            var contentPath = GetContentPath(path);
             if (File.Exists(contentPath)) {
                 var content = await File.ReadAllBytesAsync(contentPath);
                 cached.Content = content;
@@ -72,8 +74,10 @@ public sealed class Preloader : IPreloader {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
         await File.WriteAllLinesAsync(filePath, _dictionary.Keys);
         foreach (var item in _dictionary) {
-            var headerPath = GetMetadataPath(item.Key);
-            var contentPath = GetContentPath(item.Key);
+            var questionMark = item.Key.IndexOf('?');
+            var path = questionMark == -1 ? item.Key : item.Key[..questionMark];
+            var headerPath = GetMetadataPath(path);
+            var contentPath = GetContentPath(path);
 
             var dir = Path.GetDirectoryName(headerPath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) {
@@ -81,6 +85,7 @@ public sealed class Preloader : IPreloader {
             }
 
             await using var fileStream = File.Open(headerPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            _logger.LogInformation("Saving metadata to {File}", headerPath);
             await JsonSerializer.SerializeAsync(fileStream, item.Value);
             await File.WriteAllBytesAsync(contentPath, item.Value.Content ?? Array.Empty<byte>());
         }

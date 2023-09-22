@@ -50,11 +50,15 @@ public sealed class CacheUpdater : BackgroundService {
                     continue;
                 }
 
-                var client = _httpClientFactory.CreateClient("wp");
                 try {
                     foreach (string path in _paths) {
+                        var client = _httpClientFactory.CreateClient("wp");
+                        _logger.LogInformation("Updating {Path}", path);
                         var response = await client.GetAsync(path, stoppingToken);
-                        if (!response.IsSuccessStatusCode) continue;
+                        if (!response.IsSuccessStatusCode) {
+                            continue;
+                        }
+
                         var contentLength = response.Content.Headers.ContentLength;
                         if (contentLength <= _options.MaxSize) {
                             var body = await response.Content.ReadAsByteArrayAsync(stoppingToken);

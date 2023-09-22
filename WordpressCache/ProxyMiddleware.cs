@@ -23,8 +23,9 @@ public sealed class ProxyMiddleware {
         var method = context.Request.Method;
         if (logger.IsInformation()) {
             logger.LogInformation(
-                "{Session}: {Method} {Path}{QueryString}",
+                "{Session} ({Remote}): {Method} {Path}{QueryString}",
                 sessionId,
+                context.Connection.RemoteIpAddress,
                 method,
                 context.Request.Path,
                 context.Request.QueryString
@@ -50,8 +51,8 @@ public sealed class ProxyMiddleware {
 
         var disableCache = hasCookie || (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"));
 
-        if (!disableCache
-            && saved is not null
+        if (!disableCache 
+            && saved?.Content != null 
             && (saved.Expire >= Now || serverStatus.IsError)
            ) {
             // if (saved.Expire >= Now) {
