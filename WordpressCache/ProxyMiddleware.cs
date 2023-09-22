@@ -31,7 +31,9 @@ public sealed class ProxyMiddleware {
             );
         }
 
-        if (!HttpMethods.IsGet(method)) {
+        var headers = context.Request.Headers;
+        var hasCookie = headers.Cookie.Count > 0;
+        if (!HttpMethods.IsGet(method) || hasCookie) {
             // logger.LogInformation("{SessionId} Method is {Method}", sessionId, method);
             // var requestMessage = new HttpRequestMessage(method, path);
             // context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
@@ -46,8 +48,6 @@ public sealed class ProxyMiddleware {
         var saved = cache.GetValue(path);
         var serverStatus = services.ServerStatus; // context.RequestServices.GetRequiredService<ServerStatus>();
 
-        var headers = context.Request.Headers;
-        var hasCookie = headers.Cookie.Count > 0;
         var disableCache = hasCookie || (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"));
 
         if (!disableCache
