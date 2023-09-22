@@ -18,4 +18,5 @@ public sealed class GlobalOptions {
     public int CheckInterval { get; set; } = 600;
     public int UpdateInterval { get; set; } = 7200;
     public string CacheDir { get; set; } = ".";
+    public bool DisableLogging { get; set; } = true;
 }
