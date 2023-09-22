@@ -11,18 +11,21 @@ public sealed class CacheUpdater : BackgroundService {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ServerStatus _serverStatus;
     private readonly GlobalOptions _options;
+    private readonly IPreloader _preloader;
 
     public CacheUpdater(
         ICache cache,
         ILogger<CacheUpdater> logger,
         IHttpClientFactory httpClientFactory,
         ServerStatus serverStatus,
-        IOptions<GlobalOptions> options
+        IOptions<GlobalOptions> options,
+        IPreloader preloader
     ) {
         _cache = cache;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _serverStatus = serverStatus;
+        _preloader = preloader;
         _options = options.Value;
         if (cache is MemoryCache memoryCache) {
             _paths = memoryCache.Values.Keys;
@@ -52,17 +55,19 @@ public sealed class CacheUpdater : BackgroundService {
                     var response = await client.GetAsync(path, stoppingToken);
                     if (!response.IsSuccessStatusCode) continue;
                     var contentLength = response.Content.Headers.ContentLength;
-                    if (contentLength < _options.MaxSize) {
+                    if (contentLength <= _options.MaxSize) {
                         var body = await response.Content.ReadAsByteArrayAsync(stoppingToken);
-                        _cache.SaveAsync(path, response, body);
+                        _cache.Save(path, response, body);
                     } else {
-                        _cache.SaveAsync(path, response, Array.Empty<byte>());
+                        _cache.Save(path, response, Array.Empty<byte>());
                     }
 
                     await Task.Delay(20_000, stoppingToken);
                 }
             } catch (HttpRequestException) {
                 _serverStatus.MaskAsError();
+            } finally {
+                await _preloader.SaveAsync();
             }
         }
 

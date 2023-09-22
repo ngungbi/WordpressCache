@@ -7,7 +7,7 @@ namespace WordpressCache.Services;
 
 public interface ICache {
     CachedContent? GetValue(string path);
-    void SaveAsync(string path, HttpResponseMessage message, byte[] content);
+    void Save(string path, HttpResponseMessage message, byte[] content);
 }
 
 public class Cache : ICache {
@@ -38,7 +38,7 @@ public class Cache : ICache {
         return result;
     }
 
-    public void SaveAsync(string path, HttpResponseMessage message, byte[] content) {
+    public void Save(string path, HttpResponseMessage message, byte[] content) {
         var headers = message.Content.Headers.ToDictionary(x => x.Key, x => string.Join("; ", x.Value));
         // var content = await message.Content.ReadAsByteArrayAsync();
         var value = new CachedContent(headers) {

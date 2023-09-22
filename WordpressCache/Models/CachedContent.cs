@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
 
 namespace WordpressCache.Models;
@@ -11,5 +12,7 @@ public class CachedContent {
     public IDictionary<string, string> Headers { get; }
     public long Expire { get; set; }
     public long ContentLength { get; set; }
+
+    [JsonIgnore]
     public byte[]? Content { get; set; }
 }

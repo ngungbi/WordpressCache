@@ -15,6 +15,7 @@ services.AddSingleton(config);
 // services.AddSingleton<IConnectionMultiplexer>(connMux);
 services.AddSingleton<ICache, MemoryCache>();
 services.AddSingleton<ServerStatus>();
+services.AddSingleton<IPreloader, Preloader>();
 services.AddScoped<ServiceContainer>();
 
 services.AddHostedService<ServerMonitor>();
@@ -36,11 +37,19 @@ services.AddHttpClient(
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope()) {
-    var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
-    var response = await httpClient.GetAsync("/");
-    response.EnsureSuccessStatusCode();
-    var content = await response.Content.ReadAsStringAsync();
-    Console.WriteLine(content);
+    // var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
+    // var response = await httpClient.GetAsync("/");
+    // if (!response.IsSuccessStatusCode) {
+    //     await Task.Delay(1000);
+    //     response.EnsureSuccessStatusCode();
+    // }
+    //
+    // var content = await response.Content.ReadAsStringAsync();
+    // Console.WriteLine(content);
+    var preloader = scope.ServiceProvider.GetRequiredService<IPreloader>();
+    await preloader.LoadAsync();
+    await preloader.UpdateAllAsync();
+    await preloader.SaveAsync();
 }
 
 // app.MapGet("/", () => "Hello World!");

@@ -93,7 +93,7 @@ public sealed class ProxyMiddleware {
 
             if (response.IsSuccessStatusCode) {
                 // if (context.Request.Query.Count == 0) {
-                cache.SaveAsync(path, response, body);
+                cache.Save(path, response, body);
                 // }
 
                 if (logger.IsInformation()) {
@@ -178,7 +178,7 @@ public sealed class ProxyMiddleware {
     private static async Task<byte[]> Serve(HttpContext context, HttpResponseMessage message) {
         var options = context.RequestServices.GetRequiredService<IOptions<GlobalOptions>>().Value;
         CopyResponseHeaders(message, context.Response);
-        if (message.Content.Headers.ContentLength < options.MaxSize) {
+        if (message.Content.Headers.ContentLength <= options.MaxSize) {
             var body = await message.Content.ReadAsByteArrayAsync();
             await context.Response.BodyWriter.WriteAsync(body);
             return body;

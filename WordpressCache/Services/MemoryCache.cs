@@ -26,7 +26,7 @@ public sealed class MemoryCache : ICache {
         // return _cache.TryGetValue(path, out var content) ? content : null;
     }
 
-    public void SaveAsync(string path, HttpResponseMessage message, byte[]? content) {
+    public void Save(string path, HttpResponseMessage message, byte[]? content) {
         var headers = message.Content.Headers.ToDictionary(x => x.Key, x => string.Join("; ", x.Value));
         var contentLength = message.Content.Headers.ContentLength ?? 0L;
 
