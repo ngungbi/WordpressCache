@@ -28,7 +28,7 @@ var backendAddr = new Uri(config["BackendAddress"]);
 Console.WriteLine("Wordpress Cache");
 Console.WriteLine($"Serve {publicAddr} from {backendAddr}");
 
-services.AddHttpClient(
+var httpClientBuilder = services.AddHttpClient(
     "WP", client => {
         client.BaseAddress = backendAddr;
         client.DefaultRequestHeaders.Host = publicAddr.Host;
@@ -41,7 +41,12 @@ if (config.GetValue<bool>("SkipCertificateValidation")) {
     app.Services.GetRequiredService<ILoggerFactory>()
         .CreateLogger("Startup")
         .LogWarning("Ignoring certificate validation");
-    ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+    httpClientBuilder.ConfigurePrimaryHttpMessageHandler(
+        _ => new HttpClientHandler {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        }
+    );
+    // ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 }
 
 using (var scope = app.Services.CreateScope()) {
