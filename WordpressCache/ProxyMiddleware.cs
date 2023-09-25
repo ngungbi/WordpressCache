@@ -39,6 +39,7 @@ public sealed class ProxyMiddleware {
             // var requestMessage = new HttpRequestMessage(method, path);
             // context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
             // await context.Response.BodyWriter.WriteAsync(Array.Empty<byte>());
+            logger.LogDebug("{Session}: Forwarding request", sessionId);
             var client = services.HttpClient;
             await ForwardRequestAsync(context, client);
             return;
@@ -145,6 +146,7 @@ public sealed class ProxyMiddleware {
         };
         using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
         CopyRequestHeaders(context.Request, message.Headers);
+        message.Content = new StreamContent(context.Request.Body);
         var responseMessage = await client.SendAsync(message);
 
         var response = context.Response;

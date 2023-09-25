@@ -106,8 +106,10 @@ public sealed class Preloader : IPreloader {
         var list = _dictionary.Keys.ToList();
         foreach (string item in list) {
             try {
+                _logger.LogInformation("Updating {Path}", item);
                 var responseMessage = await client.GetAsync(item, cancellationToken);
                 if (!responseMessage.IsSuccessStatusCode) {
+                    _logger.LogWarning("Error response {StatusCode}", responseMessage.StatusCode);
                     continue;
                 }
 
@@ -117,6 +119,7 @@ public sealed class Preloader : IPreloader {
                 }
 
                 _cache.Save(item, responseMessage, content);
+                _logger.LogInformation("Saved {Path}", item);
             } catch (HttpRequestException e) {
                 _logger.LogError(e, "Failed to update");
             }

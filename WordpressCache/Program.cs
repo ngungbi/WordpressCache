@@ -53,8 +53,8 @@ using (var scope = app.Services.CreateScope()) {
 }
 
 // app.MapGet("/", () => "Hello World!");
-app.UseMiddleware<LoggerMiddleware>();
 app.UseMiddleware<ProxyMiddleware>();
+app.UseMiddleware<LoggerMiddleware>();
 // app.MapGet("/*", ProxyMiddleware.Shared.InvokeAsync);
 // app.Use(ProxyMiddleware.Shared.InvokeAsync);
 // app.Run(ProxyMiddleware.InvokeAsync);

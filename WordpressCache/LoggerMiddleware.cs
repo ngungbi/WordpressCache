@@ -13,7 +13,7 @@ public sealed class LoggerMiddleware {
     public async Task InvokeAsync(HttpContext context) {
         await _next(context);
 
-        if (context.Request.ContentType != "text/html") {
+        if (context.Response.ContentType != "text/html") {
             return;
         }
 
