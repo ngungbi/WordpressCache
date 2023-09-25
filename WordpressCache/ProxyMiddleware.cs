@@ -152,9 +152,12 @@ public sealed class ProxyMiddleware {
         var responseMessage = await client.SendAsync(message);
 
         var response = context.Response;
+        var contentLength = responseMessage.Content.Headers.ContentLength ?? 0;
         CopyResponseHeaders(responseMessage, context.Response);
         response.StatusCode = (int) responseMessage.StatusCode;
-        await responseMessage.Content.CopyToAsync(response.Body);
+        if (contentLength > 0) {
+            await responseMessage.Content.CopyToAsync(response.Body);
+        }
     }
 
     private static void SetRequestHeaders(HttpRequestHeaders targetHeaders, IHeaderDictionary contextHeaders) {
