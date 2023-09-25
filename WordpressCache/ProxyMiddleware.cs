@@ -51,8 +51,8 @@ public sealed class ProxyMiddleware {
 
         var disableCache = hasCookie || (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"));
 
-        if (!disableCache 
-            && saved?.Content != null 
+        if (!disableCache
+            && saved?.Content != null
             && (saved.Expire >= Now || serverStatus.IsError)
            ) {
             // if (saved.Expire >= Now) {
@@ -139,11 +139,12 @@ public sealed class ProxyMiddleware {
 
     private static async Task ForwardRequestAsync(HttpContext context, HttpClient client) {
         var request = context.Request;
-        CopyRequestHeader(request, client);
+        // CopyRequestHeader(request, client);
         var uri = new UriBuilder(request.Path) {
             Query = request.QueryString.ToUriComponent()
         };
         using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
+        CopyRequestHeaders(context.Request, message.Headers);
         var responseMessage = await client.SendAsync(message);
 
         var response = context.Response;
@@ -205,9 +206,17 @@ public sealed class ProxyMiddleware {
         // await using var writer = new StreamWriter(context.Response.Body);
     }
 
-    private static void CopyRequestHeader(HttpRequest request, HttpClient client) {
+    private static void CopyRequestHeaders(HttpRequest request, HttpClient client) {
         foreach (var item in request.Headers) {
-            client.DefaultRequestHeaders.Add(item.Key, string.Join("; ", item.Value));
+            //
+            // client.DefaultRequestHeaders[item.Key] = 
+            // client.DefaultRequestHeaders.(item.Key, string.Join("; ", item.Value));
+        }
+    }
+
+    private static void CopyRequestHeaders(HttpRequest request, HttpRequestHeaders headers) {
+        foreach (var item in request.Headers) {
+            headers.Add(item.Key, string.Join("; ", item.Value));
         }
     }
 
