@@ -35,12 +35,8 @@ var httpClientBuilder = services.AddHttpClient(
         client.DefaultRequestHeaders.Add("x-forwarded-proto", publicAddr.Scheme);
     }
 );
-var app = builder.Build();
 
 if (config.GetValue<bool>("SkipCertificateValidation")) {
-    app.Services.GetRequiredService<ILoggerFactory>()
-        .CreateLogger("Startup")
-        .LogWarning("Ignoring certificate validation");
     httpClientBuilder.ConfigurePrimaryHttpMessageHandler(
         _ => new HttpClientHandler {
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
@@ -48,6 +44,8 @@ if (config.GetValue<bool>("SkipCertificateValidation")) {
     );
     // ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 }
+
+var app = builder.Build();
 
 using (var scope = app.Services.CreateScope()) {
     // var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
