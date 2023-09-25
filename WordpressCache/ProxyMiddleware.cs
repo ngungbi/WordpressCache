@@ -141,9 +141,11 @@ public sealed class ProxyMiddleware {
     private static async Task ForwardRequestAsync(HttpContext context, HttpClient client) {
         var request = context.Request;
         // CopyRequestHeader(request, client);
-        var uri = new UriBuilder(request.Path) {
+        var uri = new UriBuilder(client.BaseAddress!) {
+            Path = request.Path,
             Query = request.QueryString.ToUriComponent()
         };
+        
         using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
         CopyRequestHeaders(context.Request, message.Headers);
         message.Content = new StreamContent(context.Request.Body);
