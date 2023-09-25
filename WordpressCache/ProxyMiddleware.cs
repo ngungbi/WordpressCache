@@ -77,17 +77,17 @@ public sealed class ProxyMiddleware {
             var client = services.HttpClient;
             // CopyRequestHeader(context.Request, client);
             HttpResponseMessage response;
-            if (hasCookie) {
-                var url = new UriBuilder(client.BaseAddress!) {
-                    Path = context.Request.Path,
-                    Query = context.Request.QueryString.ToUriComponent()
-                };
-                var msg = new HttpRequestMessage(GetMethod(context.Request), url.Uri);
+            var uri = new UriBuilder(client.BaseAddress!) {
+                Path = context.Request.Path,
+                Query = context.Request.QueryString.ToUriComponent()
+            };
+            if (disableCache) {
+                var msg = new HttpRequestMessage(GetMethod(context.Request), uri.Uri);
                 msg.Headers.Add("Cache-Control", string.Join("; ", headers.CacheControl));
-                msg.Headers.Add("Cookie", string.Join("; ", headers.Cookie));
+                // msg.Headers.Add("Cookie", string.Join("; ", headers.Cookie));
                 response = await client.SendAsync(msg);
             } else {
-                response = await client.GetAsync(path);
+                response = await client.GetAsync(uri.Uri);
             }
 
             // var response = await client.GetAsync(path);
@@ -245,6 +245,8 @@ public sealed class ProxyMiddleware {
         foreach ((string? key, string? value) in content.Headers) {
             context.Response.Headers[key] = value;
         }
+
+        context.Response.Headers.CacheControl = "max-age=86400";
 
         if (content.ContentLength > 0) {
             await context.Response.BodyWriter.WriteAsync(content.Content);
