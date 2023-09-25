@@ -145,7 +145,7 @@ public sealed class ProxyMiddleware {
             Path = request.Path,
             Query = request.QueryString.ToUriComponent()
         };
-        
+
         using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
         CopyRequestHeaders(context.Request, message.Headers);
         message.Content = new StreamContent(context.Request.Body);
@@ -205,7 +205,11 @@ public sealed class ProxyMiddleware {
 
         context.Response.StatusCode = (int) message.StatusCode;
 
-        await message.Content.CopyToAsync(context.Response.Body);
+        var contentLength = message.Content.Headers.ContentLength ?? 0;
+        if (contentLength > 0) {
+            await message.Content.CopyToAsync(context.Response.Body);
+        }
+
         return Array.Empty<byte>();
         // await using var writer = new StreamWriter(context.Response.Body);
     }
@@ -224,10 +228,11 @@ public sealed class ProxyMiddleware {
         }
     }
 
-    private static async Task ServeNoCaching(HttpContext context, HttpResponseMessage message) {
+    private static Task ServeNoCaching(HttpContext context, HttpResponseMessage message) {
         CopyResponseHeaders(message, context.Response);
         context.Response.StatusCode = (int) message.StatusCode;
-        await message.Content.CopyToAsync(context.Response.Body);
+        var contentLength = message.Content.Headers.ContentLength ?? 0;
+        return contentLength > 0 ? message.Content.CopyToAsync(context.Response.Body) : Task.CompletedTask;
         // await using var writer = new StreamWriter(context.Response.Body);
     }
 
@@ -236,6 +241,8 @@ public sealed class ProxyMiddleware {
             context.Response.Headers[key] = value;
         }
 
-        await context.Response.BodyWriter.WriteAsync(content.Content);
+        if (content.ContentLength > 0) {
+            await context.Response.BodyWriter.WriteAsync(content.Content);
+        }
     }
 }
