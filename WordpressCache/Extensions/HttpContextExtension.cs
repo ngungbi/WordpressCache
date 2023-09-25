@@ -28,6 +28,12 @@ public static class HttpContextExtension {
         // };
     }
 
+    public static string GetClientIP(this HttpContext context) => GetClientIP(context.Request);
+
+    public static string GetClientIP(this HttpRequest request) {
+        var header = request.Headers["x-forwarded-for"];
+        return string.Join(',', header);
+    }
 
     public static async Task WriteAsync(this HttpResponse response, HttpResponseMessage message) {
         foreach ((string? key, var value) in message.Content.Headers) {

@@ -22,13 +22,14 @@ public sealed class ProxyMiddleware {
 
         var method = context.Request.Method;
         if (logger.IsInformation()) {
+            var req = context.Request;
             logger.LogInformation(
                 "{Session} ({Remote}): {Method} {Path}{QueryString}",
                 sessionId,
-                context.Request.Headers["x-forwarded-for"],
+                req.GetClientIP(),
                 method,
-                context.Request.Path,
-                context.Request.QueryString
+                req.Path,
+                req.QueryString
             );
         }
 
@@ -147,6 +148,7 @@ public sealed class ProxyMiddleware {
         };
 
         using var message = new HttpRequestMessage(GetMethod(request), uri.Uri);
+
         CopyRequestHeaders(context.Request, message.Headers);
         message.Content = new StreamContent(context.Request.Body);
         var responseMessage = await client.SendAsync(message);

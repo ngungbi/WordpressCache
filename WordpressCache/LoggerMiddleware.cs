@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using WordpressCache.Config;
+using WordpressCache.Extensions;
 
 namespace WordpressCache;
 
@@ -22,7 +23,8 @@ public sealed class LoggerMiddleware {
             return;
         }
 
-        var ip = context.Request.Headers.TryGetValue("x-forwarded-for", out var xIp) ? xIp.ToString() : context.Connection.RemoteIpAddress?.ToString();
+        var ip = context.GetClientIP();
+        //.Request.Headers.TryGetValue("x-forwarded-for", out var xIp) ? xIp.ToString() : context.Connection.RemoteIpAddress?.ToString();
         // var ip = context.Request.Headers ;
         var userAgent = context.Request.Headers.UserAgent;
         var url = context.Request.Path;
