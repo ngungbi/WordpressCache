@@ -78,10 +78,14 @@ public sealed class Preloader : IPreloader {
     public async Task SaveAsync() {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
         await File.WriteAllLinesAsync(filePath, _dictionary.Keys);
-        foreach (var item in _dictionary) {
-            var questionMark = item.Key.IndexOf('?');
+        foreach ((string? key, var value) in _dictionary) {
+            if (key.Length == 0 || key[0] != '/') {
+                continue;
+            }
+
+            var questionMark = key.IndexOf('?');
             var hasQueryString = questionMark >= 0;
-            var path = hasQueryString ? item.Key[..questionMark] : item.Key;
+            var path = hasQueryString ? key[1..questionMark] : key[1..];
             var headerPath = GetMetadataPath(path);
             var contentPath = GetContentPath(path);
 
@@ -92,8 +96,8 @@ public sealed class Preloader : IPreloader {
 
             await using var fileStream = File.Open(headerPath, FileMode.Create, FileAccess.Write, FileShare.Read);
             _logger.LogInformation("Saving metadata to {File}", headerPath);
-            await JsonSerializer.SerializeAsync(fileStream, item.Value);
-            await File.WriteAllBytesAsync(contentPath, item.Value.Content ?? Array.Empty<byte>());
+            await JsonSerializer.SerializeAsync(fileStream, value);
+            await File.WriteAllBytesAsync(contentPath, value.Content ?? Array.Empty<byte>());
         }
     }
 
