@@ -1,3 +1,4 @@
+using System.Net;
 using WordpressCache;
 using WordpressCache.Config;
 using WordpressCache.Services;
@@ -35,6 +36,13 @@ services.AddHttpClient(
     }
 );
 var app = builder.Build();
+
+if (config.GetValue<bool>("SkipCertificateValidation")) {
+    app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Startup")
+        .LogWarning("Ignoring certificate validation");
+    ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+}
 
 using (var scope = app.Services.CreateScope()) {
     // var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
