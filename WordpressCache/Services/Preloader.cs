@@ -25,6 +25,7 @@ public sealed class Preloader : IPreloader {
         _options = options.Value;
         var memoryCache = (MemoryCache) cache;
         _dictionary = memoryCache.Values;
+        _logger.LogInformation("Cache Directory: {Dir}", _options.CacheDir);
     }
 
     public async Task LoadAsync() {
