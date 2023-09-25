@@ -13,7 +13,7 @@ public sealed class LoggerMiddleware {
     public async Task InvokeAsync(HttpContext context) {
         await _next(context);
 
-        if (context.Response.ContentType != "text/html") {
+        if (!context.Response.ContentType.StartsWith("text/html")) {
             return;
         }
 
@@ -22,7 +22,7 @@ public sealed class LoggerMiddleware {
             return;
         }
 
-        var ip = context.Request.Headers.TryGetValue("x-real-ip", out var xIp) ? xIp.ToString() : context.Connection.RemoteIpAddress?.ToString();
+        var ip = context.Request.Headers.TryGetValue("x-forwarded-for", out var xIp) ? xIp.ToString() : context.Connection.RemoteIpAddress?.ToString();
         // var ip = context.Request.Headers ;
         var userAgent = context.Request.Headers.UserAgent;
         var url = context.Request.Path;

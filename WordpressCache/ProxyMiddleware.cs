@@ -25,7 +25,7 @@ public sealed class ProxyMiddleware {
             logger.LogInformation(
                 "{Session} ({Remote}): {Method} {Path}{QueryString}",
                 sessionId,
-                context.Request.Headers["x-real-ip"],
+                context.Request.Headers["x-forwarded-for"],
                 method,
                 context.Request.Path,
                 context.Request.QueryString
