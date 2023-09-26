@@ -59,8 +59,8 @@ public sealed class ProxyMiddleware {
            ) {
             // if (saved.Expire >= Now) {
             await Serve(context, saved, false);
-            if (logger.IsInformation()) {
-                logger.LogInformation("{SessionId}: Use cached response", sessionId);
+            if (logger.IsDebug()) {
+                logger.LogDebug("{SessionId}: Use cached response", sessionId);
             }
 
             return;
@@ -93,12 +93,12 @@ public sealed class ProxyMiddleware {
                 throw new HttpRequestException($"{sessionId}: Server error - {response.StatusCode}");
             }
 
-            if (logger.IsInformation()) {
-                logger.LogInformation("{SessionId}: Status code {StatusCode}", sessionId, (int) response.StatusCode);
+            if (logger.IsDebug()) {
+                logger.LogDebug("{SessionId}: Status code {StatusCode}", sessionId, (int) response.StatusCode);
             }
 
             if (disableCache) {
-                logger.LogInformation("{SessionId} Cache disabled", sessionId);
+                logger.LogInformation("{SessionId}: Cache disabled", sessionId);
                 await ServeNoCaching(context, response);
                 return;
             }
@@ -110,8 +110,8 @@ public sealed class ProxyMiddleware {
                 cache.Save(path, response, body);
                 // }
 
-                if (logger.IsInformation()) {
-                    logger.LogInformation("{SessionId}: Save response to cache: {Method} {Path}", sessionId, method, path);
+                if (logger.IsDebug()) {
+                    logger.LogDebug("{SessionId}: Save response to cache: {Method} {Path}", sessionId, method, path);
                 }
                 // } else if (saved != null && (int) response.StatusCode >= 500) {
                 //     logger.LogWarning(
