@@ -83,16 +83,16 @@ public sealed class CacheUpdater : BackgroundService {
     }
 
     private static Uri MakeUri(Uri baseAddress, string path) {
-        if (!path.Contains('?')) {
+        var q = path.IndexOf('?');
+        if (q == -1) {
             var uri = new UriBuilder(baseAddress) {
                 Path = path
             };
             return uri.Uri;
         } else {
-            var parts = path.Split('?');
             var uri = new UriBuilder(baseAddress) {
-                Path = parts[0],
-                Query = parts[1]
+                Path = path[..q],
+                Query = path[q..]
             };
             return uri.Uri;
         }
