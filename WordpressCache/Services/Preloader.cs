@@ -78,7 +78,7 @@ public sealed class Preloader : IPreloader {
     public async Task SaveAsync() {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
         await File.WriteAllLinesAsync(filePath, _dictionary.Keys);
-        foreach ((string? key, var value) in _dictionary) {
+        foreach ((string? key, var value) in _dictionary.OrderBy(x => x.Key)) {
             if (key.Length == 0 || key[0] != '/') {
                 continue;
             }
