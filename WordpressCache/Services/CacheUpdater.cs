@@ -54,7 +54,7 @@ public sealed class CacheUpdater : BackgroundService {
                     foreach (string path in _paths) {
                         var client = _httpClientFactory.CreateClient("wp");
                         _logger.LogInformation("Updating {Path}", path);
-                        var response = await client.GetAsync(path, stoppingToken);
+                        var response = await client.GetAsync(MakeUri(client.BaseAddress!, path), stoppingToken);
                         if (!response.IsSuccessStatusCode) {
                             continue;
                         }
@@ -80,5 +80,44 @@ public sealed class CacheUpdater : BackgroundService {
         }
 
         throw new InvalidOperationException();
+    }
+
+    private static Uri MakeUri(Uri baseAddress, string path) {
+        if (!path.Contains('?')) {
+            var uri = new UriBuilder(baseAddress) {
+                Path = path
+            };
+            return uri.Uri;
+        } else {
+            var parts = path.Split('?');
+            var uri = new UriBuilder(baseAddress) {
+                Path = parts[0],
+                Query = parts[1]
+            };
+            return uri.Uri;
+        }
+    }
+
+    private static string JoinUrlPath(string baseUrl, string path) {
+        if (string.IsNullOrEmpty(baseUrl)) {
+            return path;
+        }
+
+        if (string.IsNullOrEmpty(path)) {
+            return baseUrl;
+        }
+
+        var baseEnd = baseUrl.EndsWith('/');
+        var pathStart = path[0] == '/';
+
+        if (baseEnd && pathStart) {
+            return baseUrl + path[1..];
+        }
+
+        if (!baseEnd && !pathStart) {
+            return baseUrl + '/' + path;
+        }
+
+        return baseUrl + path;
     }
 }

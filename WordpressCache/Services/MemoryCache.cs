@@ -26,6 +26,11 @@ public sealed class MemoryCache : ICache {
     }
 
     public void Save(string path, HttpResponseMessage message, byte[]? content) {
+        var statusCode = (int) message.StatusCode;
+        if (statusCode >= 300 && statusCode < 400) {
+            return;
+        }
+
         var headers = message.Content.Headers.ToDictionary(x => x.Key, x => string.Join("; ", x.Value));
         var contentLength = message.Content.Headers.ContentLength ?? 0L;
 
