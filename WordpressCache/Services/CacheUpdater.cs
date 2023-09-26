@@ -1,4 +1,6 @@
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using WordpressCache.Config;
 using WordpressCache.Models;
 
@@ -54,7 +56,14 @@ public sealed class CacheUpdater : BackgroundService {
                     foreach (string path in _paths) {
                         var client = _httpClientFactory.CreateClient("wp");
                         _logger.LogInformation("Updating {Path}", path);
-                        var response = await client.GetAsync(MakeUri(client.BaseAddress!, path), stoppingToken);
+                        using var message = new HttpRequestMessage(HttpMethod.Get, MakeUri(client.BaseAddress!, path)) {
+                            Headers = {
+                                {HeaderNames.CacheControl, "no-cache"}
+                            }
+                        };
+
+                        // var response = await client.GetAsync(MakeUri(client.BaseAddress!, path), stoppingToken);
+                        var response = await client.SendAsync(message, stoppingToken);
                         if (!response.IsSuccessStatusCode) {
                             continue;
                         }

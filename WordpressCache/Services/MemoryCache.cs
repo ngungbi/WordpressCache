@@ -39,6 +39,7 @@ public sealed class MemoryCache : ICache {
         var value = new CachedContent(headers) {
             Content = contentLength < _options.MaxSize ? content : null,
             ContentLength = contentLength,
+            StatusCode = (int) message.StatusCode,
             Expire = Now + _options.CacheTtl
         };
 

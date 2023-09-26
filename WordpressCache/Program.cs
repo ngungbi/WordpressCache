@@ -17,6 +17,7 @@ services.AddSingleton(config);
 services.AddSingleton<ICache, MemoryCache>();
 services.AddSingleton<ServerStatus>();
 services.AddSingleton<IPreloader, Preloader>();
+services.AddSingleton<BackendClient>();
 services.AddScoped<ServiceContainer>();
 
 services.AddHostedService<ServerMonitor>();

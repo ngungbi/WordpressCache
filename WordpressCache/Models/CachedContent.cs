@@ -12,6 +12,7 @@ public class CachedContent {
     public IDictionary<string, string> Headers { get; }
     public long Expire { get; set; }
     public long ContentLength { get; set; }
+    public int StatusCode { get; set; } = 200;
 
     [JsonIgnore]
     public byte[]? Content { get; set; }

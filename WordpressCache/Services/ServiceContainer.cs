@@ -4,7 +4,8 @@ using WordpressCache.Config;
 namespace WordpressCache.Services;
 
 public sealed class ServiceContainer {
-    public HttpClient HttpClient => _services.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
+    // public HttpClient HttpClient => _services.GetRequiredService<IHttpClientFactory>().CreateClient("WP");
+    public BackendClient Client => _services.GetRequiredService<BackendClient>();
     public ICache Cache => _services.GetRequiredService<ICache>();
     public ServerStatus ServerStatus => _services.GetRequiredService<ServerStatus>();
     public GlobalOptions Options => _services.GetRequiredService<IOptions<GlobalOptions>>().Value;
