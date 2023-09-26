@@ -32,6 +32,13 @@ public sealed class Preloader : IPreloader {
         _logger.LogInformation("Cache Directory: {Dir}", _options.CacheDir);
     }
 
+    private static string GetPath(string path, out bool hasQueryString) {
+        var questionMark = path.IndexOf('?');
+        hasQueryString = questionMark >= 0;
+        var trimmed = hasQueryString ? path[..questionMark] : path;
+        return trimmed == "/" ? "root" : trimmed.TrimEnd('/');
+    }
+
     public async Task LoadAsync() {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
         if (!File.Exists(filePath)) {
@@ -45,9 +52,10 @@ public sealed class Preloader : IPreloader {
                 continue;
             }
 
-            var questionMark = line.IndexOf('?');
-            var hasQueryString = questionMark >= 0;
-            var path = hasQueryString ? line[..questionMark] : line;
+            // var questionMark = line.IndexOf('?');
+            // var hasQueryString = questionMark >= 0;
+            // var path = hasQueryString ? line[..questionMark] : line;
+            var path = GetPath(line, out var hasQueryString);
             var headerPath = GetMetadataPath(path);
             if (!File.Exists(headerPath)) {
                 _dictionary.TryAdd(line, new CachedContent());
@@ -87,9 +95,9 @@ public sealed class Preloader : IPreloader {
                 continue;
             }
 
-            var questionMark = key.IndexOf('?');
-            var hasQueryString = questionMark >= 0;
-            var path = hasQueryString ? key[1..questionMark] : key[1..];
+            // var questionMark = key.IndexOf('?');
+            // var hasQueryString = questionMark >= 0;
+            var path = GetPath(key, out _); // hasQueryString ? key[1..questionMark].TrimEnd('/') : key[1..].TrimEnd('/');
             var headerPath = GetMetadataPath(path);
             var contentPath = GetContentPath(path);
 

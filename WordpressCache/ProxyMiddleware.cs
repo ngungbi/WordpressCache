@@ -46,12 +46,12 @@ public sealed class ProxyMiddleware {
             return;
         }
 
-        var path = context.Request.Path + context.Request.QueryString;
+        var path = NormalizePath(context.Request.Path, context.Request.QueryString.ToUriComponent()); // context.Request.Path + context.Request.QueryString;
         var cache = services.Cache;
         var saved = cache.GetValue(path);
         var serverStatus = services.ServerStatus; // context.RequestServices.GetRequiredService<ServerStatus>();
 
-        var disableCache = hasCookie || (headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache"));
+        var disableCache = headers.CacheControl.Count > 0 && headers.CacheControl.Contains("no-cache");
 
         if (!disableCache
             && saved?.Content != null
@@ -135,6 +135,14 @@ public sealed class ProxyMiddleware {
         } catch (NotSupportedException) {
             context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
         }
+    }
+
+    private static string NormalizePath(string path, string queryString) {
+        if (path != "/") {
+            return path.TrimEnd('/') + queryString;
+        }
+
+        return string.IsNullOrEmpty(queryString) ? "/" : queryString;
     }
 
     // private static async Task ForwardRequestAsync(HttpContext context, HttpClient client) {
