@@ -11,7 +11,7 @@ public sealed class BackendClient {
     public BackendClient(IConfiguration config, IHttpClientFactory httpClientFactory) {
         _httpClientFactory = httpClientFactory;
         _baseAddress = new Uri(config["BackendAddress"]);
-        _host = _baseAddress.Host;
+        _host = new Uri(config["PublicAddress"]).Host;
     }
 
     public async Task<HttpResponseMessage> GetAsync(string path, CancellationToken cancellationToken = default) {

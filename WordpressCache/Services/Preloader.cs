@@ -16,12 +16,14 @@ public sealed class Preloader : IPreloader {
     private readonly IDictionary<string, CachedContent> _dictionary;
     private readonly GlobalOptions _options;
     private readonly ILogger<Preloader> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
+    // private readonly IHttpClientFactory _httpClientFactory;
+    private readonly BackendClient _client;
 
-    public Preloader(ICache cache, IOptions<GlobalOptions> options, ILogger<Preloader> logger, IHttpClientFactory httpClientFactory) {
+    public Preloader(ICache cache, IOptions<GlobalOptions> options, ILogger<Preloader> logger, BackendClient client) {
         _cache = cache;
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        // _httpClientFactory = httpClientFactory;
+        _client = client;
         _options = options.Value;
         var memoryCache = (MemoryCache) cache;
         _dictionary = memoryCache.Values;
@@ -102,12 +104,12 @@ public sealed class Preloader : IPreloader {
     }
 
     public async Task UpdateAllAsync(CancellationToken cancellationToken = default) {
-        var client = _httpClientFactory.CreateClient("WP");
+        // var client = _httpClientFactory.CreateClient("WP");
         var list = _dictionary.Keys.ToList();
         foreach (string item in list) {
             try {
                 _logger.LogInformation("Updating {Path}", item);
-                var responseMessage = await client.GetAsync(item, cancellationToken);
+                var responseMessage = await _client.GetAsync(item, cancellationToken);
                 if (!responseMessage.IsSuccessStatusCode) {
                     _logger.LogWarning("Error response {StatusCode}", responseMessage.StatusCode);
                     continue;

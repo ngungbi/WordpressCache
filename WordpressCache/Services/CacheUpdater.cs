@@ -10,24 +10,27 @@ public sealed class CacheUpdater : BackgroundService {
     private readonly ICache _cache;
     private readonly IEnumerable<string> _paths;
     private readonly ILogger<CacheUpdater> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
+    // private readonly IHttpClientFactory _httpClientFactory;
     private readonly ServerStatus _serverStatus;
     private readonly GlobalOptions _options;
     private readonly IPreloader _preloader;
+    private readonly BackendClient _client;
 
     public CacheUpdater(
         ICache cache,
         ILogger<CacheUpdater> logger,
-        IHttpClientFactory httpClientFactory,
+        // IHttpClientFactory httpClientFactory,
         ServerStatus serverStatus,
         IOptions<GlobalOptions> options,
-        IPreloader preloader
+        IPreloader preloader,
+        BackendClient client
     ) {
         _cache = cache;
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        // _httpClientFactory = httpClientFactory;
         _serverStatus = serverStatus;
         _preloader = preloader;
+        _client = client;
         _options = options.Value;
         if (cache is MemoryCache memoryCache) {
             _paths = memoryCache.Values.Keys;
@@ -54,16 +57,17 @@ public sealed class CacheUpdater : BackgroundService {
 
                 try {
                     foreach (string path in _paths) {
-                        var client = _httpClientFactory.CreateClient("wp");
+                        // var client = _httpClientFactory.CreateClient("wp");
                         _logger.LogInformation("Updating {Path}", path);
-                        using var message = new HttpRequestMessage(HttpMethod.Get, MakeUri(client.BaseAddress!, path)) {
-                            Headers = {
-                                {HeaderNames.CacheControl, "no-cache"}
-                            }
-                        };
+                        // using var message = new HttpRequestMessage(HttpMethod.Get, MakeUri(client.BaseAddress!, path)) {
+                        //     Headers = {
+                        //         {HeaderNames.CacheControl, "no-cache"}
+                        //     }
+                        // };
 
                         // var response = await client.GetAsync(MakeUri(client.BaseAddress!, path), stoppingToken);
-                        var response = await client.SendAsync(message, stoppingToken);
+                        // var response = await client.SendAsync(message, stoppingToken);
+                        var response = await _client.GetAsync(path, stoppingToken);
                         if (!response.IsSuccessStatusCode) {
                             continue;
                         }
