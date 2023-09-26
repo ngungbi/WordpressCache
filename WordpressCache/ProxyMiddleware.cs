@@ -23,12 +23,13 @@ public sealed class ProxyMiddleware {
         if (logger.IsInformation()) {
             var req = context.Request;
             logger.LogInformation(
-                "{Session} ({Remote}): {Method} {Path}{QueryString}",
+                "{Session} ({Remote}): {Method} {Path}{QueryString} {UserAgent}",
                 sessionId,
                 req.GetClientIP(),
                 method,
                 req.Path,
-                req.QueryString
+                req.QueryString,
+                string.Join("; ", context.Request.Headers.UserAgent)
             );
         }
 
