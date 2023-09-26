@@ -15,7 +15,9 @@ public sealed class Preloader : IPreloader {
     private readonly ICache _cache;
     private readonly IDictionary<string, CachedContent> _dictionary;
     private readonly GlobalOptions _options;
+
     private readonly ILogger<Preloader> _logger;
+
     // private readonly IHttpClientFactory _httpClientFactory;
     private readonly BackendClient _client;
 
@@ -79,8 +81,8 @@ public sealed class Preloader : IPreloader {
 
     public async Task SaveAsync() {
         var filePath = Path.Combine(_options.CacheDir, "index.conf");
-        await File.WriteAllLinesAsync(filePath, _dictionary.Keys);
-        foreach ((string? key, var value) in _dictionary.OrderBy(x => x.Key)) {
+        await File.WriteAllLinesAsync(filePath, _dictionary.Keys.OrderBy(x => x));
+        foreach ((string? key, var value) in _dictionary) {
             if (key.Length == 0 || key[0] != '/') {
                 continue;
             }
